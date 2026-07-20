@@ -16,6 +16,13 @@ export default function BuildHub() {
   const [projectName, setProjectName] = useState('');
   const [projects, setProjects] = useState([]);
   const [deployingTo, setDeployingTo] = useState(null);
+  
+  // Agent Mode States
+  const [agentMode, setAgentMode] = useState(false);
+  const [businessType, setBusinessType] = useState('');
+  const [audience, setAudience] = useState('');
+  const [style, setStyle] = useState('');
+  const [features, setFeatures] = useState('');
 
   useEffect(() => {
     supabase.auth.getSession().then(({ data: { session } }) => {
@@ -46,10 +53,24 @@ export default function BuildHub() {
       alert('Enter a description first');
       return;
     }
+    if (!agentMode) {
+      alert('Complete the agent questions first');
+      return;
+    }
     setLoading(true);
     try {
+      const enhancedPrompt = `${prompt}
+
+USER PREFERENCES:
+- Business/Site Type: ${businessType}
+- Target Audience: ${audience}
+- Design Style: ${style}
+- Key Features Needed: ${features}
+
+Create a website that perfectly matches these preferences. Make it professional, modern, and aligned with their style choice.`;
+
       const { data, error } = await supabase.functions.invoke('generate-website', {
-        body: { prompt },
+        body: { prompt: enhancedPrompt },
       });
       if (error) throw error;
       setGeneratedHtml(data.html);
@@ -108,13 +129,8 @@ export default function BuildHub() {
     setDeployingTo(projectName);
     
     try {
-      // Create a blob with the HTML
-      const blob = new Blob([generatedHtml], { type: 'text/html' });
-      
-      // Open Vercel with pre-filled project name
       const encodedName = encodeURIComponent(projectName.toLowerCase().replace(/\s+/g, '-'));
       
-      // Show user instructions
       alert(`To deploy "${projectName}" to Vercel:
       
 1. Copy the code (click "Copy Code" button)
@@ -125,10 +141,7 @@ export default function BuildHub() {
 
 Your site will be at: ${encodedName}.vercel.app`);
       
-      // Copy code automatically
       navigator.clipboard.writeText(generatedHtml);
-      
-      // Open Vercel in new tab
       window.open('https://vercel.com/new', '_blank');
     } catch (err) {
       alert('Error: ' + err.message);
@@ -198,20 +211,100 @@ Your site will be at: ${encodedName}.vercel.app`);
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
           <div className="space-y-6">
             <div className="bg-white rounded-lg shadow-md p-6">
-              <h2 className="text-xl font-bold text-slate-900 mb-4">Create Website</h2>
-              <textarea
-                placeholder="Describe the website you want (e.g., 'Professional barber shop with booking system')"
-                value={prompt}
-                onChange={(e) => setPrompt(e.target.value)}
-                className="w-full border border-slate-300 rounded-lg px-4 py-3 mb-4 focus:outline-none focus:ring-2 focus:ring-blue-500 h-24 resize-none"
-              />
-              <button
-                onClick={generateWebsite}
-                disabled={loading}
-                className="w-full bg-blue-600 text-white py-3 rounded-lg font-semibold hover:bg-blue-700 disabled:opacity-50 disabled:cursor-not-allowed transition"
-              >
-                {loading ? 'Generating...' : 'Generate Website'}
-              </button>
+              <h2 className="text-xl font-bold text-slate-900 mb-4">🤖 BuildHub Agent</h2>
+              
+              {!agentMode ? (
+                <div className="space-y-4 bg-blue-50 border-2 border-blue-300 rounded-lg p-4">
+                  <p className="text-blue-800 font-semibold">Let me understand your vision first:</p>
+                  
+                  <div>
+                    <label className="block text-sm font-semibold text-gray-700 mb-2">What type of business/site?</label>
+                    <input
+                      type="text"
+                      placeholder="e.g., Barber shop, E-commerce, Portfolio"
+                      value={businessType}
+                      onChange={(e) => setBusinessType(e.target.value)}
+                      className="w-full border border-gray-300 rounded-lg px-4 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500"
+                    />
+                  </div>
+
+                  <div>
+                    <label className="block text-sm font-semibold text-gray-700 mb-2">Who is your audience?</label>
+                    <input
+                      type="text"
+                      placeholder="e.g., Young professionals, Local customers"
+                      value={audience}
+                      onChange={(e) => setAudience(e.target.value)}
+                      className="w-full border border-gray-300 rounded-lg px-4 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500"
+                    />
+                  </div>
+
+                  <div>
+                    <label className="block text-sm font-semibold text-gray-700 mb-2">What's your style?</label>
+                    <select
+                      value={style}
+                      onChange={(e) => setStyle(e.target.value)}
+                      className="w-full border border-gray-300 rounded-lg px-4 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500"
+                    >
+                      <option value="">Select a style...</option>
+                      <option value="modern">Modern & Minimalist</option>
+                      <option value="bold">Bold & Vibrant</option>
+                      <option value="professional">Professional & Corporate</option>
+                      <option value="creative">Creative & Artistic</option>
+                    </select>
+                  </div>
+
+                  <div>
+                    <label className="block text-sm font-semibold text-gray-700 mb-2">Key features needed?</label>
+                    <input
+                      type="text"
+                      placeholder="e.g., Contact form, WhatsApp button, Gallery"
+                      value={features}
+                      onChange={(e) => setFeatures(e.target.value)}
+                      className="w-full border border-gray-300 rounded-lg px-4 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500"
+                    />
+                  </div>
+
+                  <button
+                    onClick={() => setAgentMode(true)}
+                    disabled={!businessType || !audience || !style}
+                    className="w-full bg-blue-600 text-white py-2 rounded-lg font-semibold hover:bg-blue-700 disabled:opacity-50 transition"
+                  >
+                    ✨ Understand My Vision
+                  </button>
+                </div>
+              ) : (
+                <div className="bg-green-50 border-2 border-green-300 rounded-lg p-4 space-y-3">
+                  <div className="flex justify-between items-start">
+                    <div>
+                      <p className="font-semibold text-green-900">✓ Ready to build!</p>
+                      <p className="text-sm text-green-700 mt-2">Business: {businessType}</p>
+                      <p className="text-sm text-green-700">Audience: {audience}</p>
+                      <p className="text-sm text-green-700">Style: {style}</p>
+                    </div>
+                    <button
+                      onClick={() => setAgentMode(false)}
+                      className="text-green-600 hover:text-green-800 text-sm underline"
+                    >
+                      Edit
+                    </button>
+                  </div>
+
+                  <textarea
+                    placeholder="Describe your website in detail..."
+                    value={prompt}
+                    onChange={(e) => setPrompt(e.target.value)}
+                    className="w-full border border-slate-300 rounded-lg px-4 py-3 focus:outline-none focus:ring-2 focus:ring-blue-500 h-24 resize-none"
+                  />
+                  <button
+                    onClick={generateWebsite}
+                    disabled={loading}
+                    className="w-full bg-blue-600 text-white py-3 rounded-lg font-semibold hover:bg-blue-700 disabled:opacity-50 disabled:cursor-not-allowed transition"
+                  >
+                    {loading ? 'Generating...' : 'Generate Website'}
+                  </button>
+                </div>
+              )}
             </div>
 
             {generatedHtml && (
@@ -300,7 +393,7 @@ Your site will be at: ${encodedName}.vercel.app`);
             ) : (
               <div className="border-2 border-dashed border-slate-300 rounded-lg h-96 flex flex-col items-center justify-center bg-slate-50">
                 <p className="text-slate-600 text-center">
-                  Describe your website and click "Generate" to see it here
+                  Answer the agent questions and describe your website to see it here
                 </p>
               </div>
             )}
