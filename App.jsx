@@ -199,7 +199,7 @@ export default function BuildHub() {
       {new Date(proj.created_at).toLocaleDateString()}
     </p>
   </div>
-))}
+))
               </div>
             </div>
           </div>
