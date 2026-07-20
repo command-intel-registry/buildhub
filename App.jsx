@@ -185,15 +185,21 @@ export default function BuildHub() {
                 {projects.length === 0 ? (
                   <p className="text-slate-600 text-center py-4">No projects yet. Create one!</p>
                 ) : (
-                  projects.map((proj) => (
-                    <div key={proj.id} className="p-3 bg-slate-100 rounded-lg hover:bg-slate-200 transition">
-                      <p className="font-semibold text-slate-900">{proj.project_name}</p>
-                      <p className="text-xs text-slate-600">
-                        {new Date(proj.created_at).toLocaleDateString()} {new Date(proj.created_at).toLocaleTimeString()}
-                      </p>
-                    </div>
-                  ))
-                )}
+                  {projects.map((proj) => (
+  <div 
+    key={proj.id} 
+    className="p-3 bg-slate-100 rounded-lg hover:bg-slate-200 transition cursor-pointer"
+    onClick={() => {
+      setGeneratedHtml(proj.website_html);
+      setProjectName(proj.project_name);
+    }}
+  >
+    <p className="font-semibold text-slate-900">{proj.project_name}</p>
+    <p className="text-xs text-slate-600">
+      {new Date(proj.created_at).toLocaleDateString()}
+    </p>
+  </div>
+))}
               </div>
             </div>
           </div>
