@@ -15,6 +15,7 @@ export default function BuildHub() {
   const [loading, setLoading] = useState(false);
   const [projectName, setProjectName] = useState('');
   const [projects, setProjects] = useState([]);
+  const [deployingTo, setDeployingTo] = useState(null);
 
   useEffect(() => {
     supabase.auth.getSession().then(({ data: { session } }) => {
@@ -81,6 +82,59 @@ export default function BuildHub() {
   const loadProjects = async () => {
     const { data } = await supabase.from('projects').select('*').eq('user_id', user.id).order('created_at', { ascending: false });
     setProjects(data || []);
+  };
+
+  const copyCode = () => {
+    navigator.clipboard.writeText(generatedHtml);
+    alert('Code copied to clipboard!');
+  };
+
+  const downloadCode = () => {
+    const element = document.createElement('a');
+    const file = new Blob([generatedHtml], {type: 'text/html'});
+    element.href = URL.createObjectURL(file);
+    element.download = 'website.html';
+    document.body.appendChild(element);
+    element.click();
+    document.body.removeChild(element);
+  };
+
+  const deployToVercel = async () => {
+    if (!generatedHtml || !projectName.trim()) {
+      alert('Generate and save a website first');
+      return;
+    }
+
+    setDeployingTo(projectName);
+    
+    try {
+      // Create a blob with the HTML
+      const blob = new Blob([generatedHtml], { type: 'text/html' });
+      
+      // Open Vercel with pre-filled project name
+      const encodedName = encodeURIComponent(projectName.toLowerCase().replace(/\s+/g, '-'));
+      
+      // Show user instructions
+      alert(`To deploy "${projectName}" to Vercel:
+      
+1. Copy the code (click "Copy Code" button)
+2. Go to vercel.com/new
+3. Create a new project
+4. Upload or paste the HTML
+5. Deploy!
+
+Your site will be at: ${encodedName}.vercel.app`);
+      
+      // Copy code automatically
+      navigator.clipboard.writeText(generatedHtml);
+      
+      // Open Vercel in new tab
+      window.open('https://vercel.com/new', '_blank');
+    } catch (err) {
+      alert('Error: ' + err.message);
+    }
+    
+    setDeployingTo(null);
   };
 
   if (!user) {
@@ -161,22 +215,49 @@ export default function BuildHub() {
             </div>
 
             {generatedHtml && (
-              <div className="bg-white rounded-lg shadow-md p-6">
-                <h2 className="text-xl font-bold text-slate-900 mb-4">Save Project</h2>
-                <input
-                  type="text"
-                  placeholder="Project name (e.g., My Barber Shop)"
-                  value={projectName}
-                  onChange={(e) => setProjectName(e.target.value)}
-                  className="w-full border border-slate-300 rounded-lg px-4 py-3 mb-3 focus:outline-none focus:ring-2 focus:ring-blue-500"
-                />
-                <button
-                  onClick={saveProject}
-                  className="w-full bg-green-600 text-white py-2 rounded-lg font-semibold hover:bg-green-700 transition"
-                >
-                  Save Project
-                </button>
-              </div>
+              <>
+                <div className="bg-white rounded-lg shadow-md p-6">
+                  <h2 className="text-xl font-bold text-slate-900 mb-4">Save Project</h2>
+                  <input
+                    type="text"
+                    placeholder="Project name (e.g., My Barber Shop)"
+                    value={projectName}
+                    onChange={(e) => setProjectName(e.target.value)}
+                    className="w-full border border-slate-300 rounded-lg px-4 py-3 mb-3 focus:outline-none focus:ring-2 focus:ring-blue-500"
+                  />
+                  <button
+                    onClick={saveProject}
+                    className="w-full bg-green-600 text-white py-2 rounded-lg font-semibold hover:bg-green-700 transition"
+                  >
+                    Save Project
+                  </button>
+                </div>
+
+                <div className="bg-white rounded-lg shadow-md p-6">
+                  <h2 className="text-xl font-bold text-slate-900 mb-4">Export & Deploy</h2>
+                  <div className="space-y-3">
+                    <button
+                      onClick={copyCode}
+                      className="w-full bg-purple-600 text-white py-2 rounded-lg font-semibold hover:bg-purple-700 transition"
+                    >
+                      📋 Copy Code
+                    </button>
+                    <button
+                      onClick={downloadCode}
+                      className="w-full bg-indigo-600 text-white py-2 rounded-lg font-semibold hover:bg-indigo-700 transition"
+                    >
+                      ⬇️ Download HTML
+                    </button>
+                    <button
+                      onClick={deployToVercel}
+                      disabled={deployingTo === projectName}
+                      className="w-full bg-black text-white py-2 rounded-lg font-semibold hover:bg-gray-900 disabled:opacity-50 transition"
+                    >
+                      {deployingTo === projectName ? 'Deploying...' : '🚀 Deploy to Vercel'}
+                    </button>
+                  </div>
+                </div>
+              </>
             )}
 
             <div className="bg-white rounded-lg shadow-md p-6">
@@ -196,7 +277,7 @@ export default function BuildHub() {
                     >
                       <p className="font-semibold text-slate-900">{proj.project_name}</p>
                       <p className="text-xs text-slate-600">
-                        {new Date(proj.created_at).toLocaleDateString()} {new Date(proj.created_at).toLocaleTimeString()}
+                        {new Date(proj.created_at).toLocaleDateString()}
                       </p>
                     </div>
                   ))
