@@ -185,7 +185,7 @@ export default function BuildHub() {
                 {projects.length === 0 ? (
                   <p className="text-slate-600 text-center py-4">No projects yet. Create one!</p>
                 ) : (
-                  {projects.map((proj) => (
+                  projects.map((proj) => (
   <div 
     key={proj.id} 
     className="p-3 bg-slate-100 rounded-lg hover:bg-slate-200 transition cursor-pointer"
